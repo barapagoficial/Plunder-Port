@@ -213,16 +213,23 @@ const World = {
       let x = px, y = py;
       const tx = this.startX + 8, ty = this.startY;
       let guard = 0;
-      while (!this.reach[y * WW + x] && guard++ < 400) {
-        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      // canal serpenteante (no recto) para que la costa se vea natural
+      while (!this.reach[y * WW + x] && guard++ < 800) {
+        const rad = hash2(x, y, 990) < 0.35 ? 2 : 1;
+        for (let dy = -rad; dy <= rad; dy++) for (let dx = -rad; dx <= rad; dx++) {
+          if (rad === 2 && Math.abs(dx) + Math.abs(dy) > 3) continue;
           const xx = x + dx, yy = y + dy;
           if (xx < 2 || yy < 2 || xx >= WW - 2 || yy >= WH - 2) continue;
           if (this.ports.some(p => Math.hypot(p.tx - xx, p.ty - yy) < 6)) continue;
           const tt = this.tiles[yy * WW + xx];
           if (tt === W_LAND || tt === W_ROCK) this.tiles[yy * WW + xx] = W_WATER;
         }
-        const ddx = tx - x, ddy = ty - y;
-        if (Math.abs(ddx) > Math.abs(ddy)) x += Math.sign(ddx); else y += Math.sign(ddy);
+        const ddx = tx - x, ddy = ty - y, wob = valueNoise(x / 6, y / 6, 991);
+        const alongX = Math.abs(ddx) > Math.abs(ddy);
+        // como mucho 1 de cada 3 pasos es lateral: siempre avanza hacia el destino
+        if (wob < 0.3 && guard % 3 === 0) { if (alongX) y += (hash2(x, y, 992) < 0.5 ? -1 : 1); else x += (hash2(x, y, 993) < 0.5 ? -1 : 1); }
+        else if (alongX) x += Math.sign(ddx); else y += Math.sign(ddy);
+        x = Math.max(3, Math.min(WW - 4, x)); y = Math.max(3, Math.min(WH - 4, y));
       }
       this.flood();
     }

@@ -1,12 +1,16 @@
 'use strict';
 // ===== Arranque y bucle principal =====
 (function () {
+// se deja pintar la pantalla de carga antes del trabajo pesado (generar el mundo y el terreno)
+requestAnimationFrame(() => setTimeout(boot, 30));
+function boot() {
   World.generate();
   Land.init();
   Render.init(document.getElementById('game'));
   Sfx.init();
   UI.init();
   window.addEventListener('resize', () => Render.resize());
+  { const ld = document.getElementById('loading'); if (ld) ld.remove(); }
 
   // Pantalla de título con el mundo de fondo
   startGame(true, true);
@@ -39,7 +43,7 @@
     Sfx.resume();
     const offline = startGame(fresh, false);
     UI.shownGold = S.gold;
-    Render.resetFog(); Render.buildMini(); Render.camInit = false;
+    Render.resetFog(); Render.camInit = false;
     Sfx.applySettings();
     state = 'play'; showHud(true); UI.setMode();
     G.curZone = World.zoneAtWorld(G.ship.x, G.ship.y);
@@ -85,4 +89,5 @@
   window.addEventListener('pagehide', () => { if (state === 'play') saveGame(); });
 
   requestAnimationFrame(loop);
+}
 })();

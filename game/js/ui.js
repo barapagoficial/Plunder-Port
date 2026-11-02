@@ -366,7 +366,7 @@ const UI = {
       else if (i > S.stage) b.appendChild(this.card('ship', s.name, desc + (trade && cost < s.price ? '<br><span class="small">Precio ' + fmt(s.price) + ' − ' + fmt(trade) + ' por tu barco viejo</span>' : ''), 'Comprar ' + this.price(cost), S.gold >= cost && i === S.stage + 1, () => {
         if (this.pay(cost)) {
           S.stage = i; S.hp = stats().maxHp; S.holes = 0; S.water = 0; S.planks = Math.max(S.planks, Math.floor(stats().maxPlanks / 2));
-          Render.invalidate(); Sfx.play('fanfare');
+          Sfx.play('fanfare');
           this.renderPort();
           this.dialog('¡Nuevo barco!', 'Ahora navegas en un <b>' + s.name + '</b>.<br>' + s.desc + (i === 4 ? '<br><br>¡Tienes tu propia <b>sala de tesoros</b> a bordo!' : ''), [{ label: '¡A la mar!', fn: () => { if (i === 4) checkEnding(); } }], 'ship');
         }

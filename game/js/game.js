@@ -133,7 +133,13 @@ function zoneHasTavern(z) { return Object.keys(S.taverns).some(id => World.ports
 function dockSpot(id) { const p = World.ports[id]; return { x: p.x + 6.9 * TILE, y: p.y + 2.15 * TILE }; }
 function placeAtPort(id) {
   const d = dockSpot(id);
-  G.ship.x = d.x; G.ship.y = d.y; G.ship.speed = 0; G.ship.angle = 0; G.path = null; G.destMark = null;
+  G.ship.x = d.x; G.ship.y = d.y; G.ship.speed = 0; G.ship.angle = 0; G.path = null; G.destMark = null; G.ship.trail = [];
+}
+// historial de la popa para dibujar la estela en "V"
+function pushTrail(o, x, y, a, w, speed, dt) {
+  if (!o.trail) o.trail = [];
+  o.trailT = (o.trailT || 0) - dt;
+  if (o.trailT <= 0 && Math.abs(speed) > 14) { o.trailT = 0.07; o.trail.push({ x, y, a, w, t: G.time }); if (o.trail.length > 40) o.trail.shift(); }
 }
 function startGame(fresh, demo) {
   S = (!fresh && !demo && loadGame()) || newSave();
@@ -501,14 +507,10 @@ function updateSea(dt) {
   G.rockCd -= dt;
   sh.x = Math.max(TILE * 2, Math.min((WW - 2) * TILE, sh.x));
   sh.y = Math.max(TILE * 2, Math.min((WH - 2) * TILE, sh.y));
-  // estela y espuma de proa
-  if (Math.abs(sh.speed) > 20 && rnd() < dt * 40) {
-    const side = rnd() < 0.5 ? 1 : -1, w = SHIPS[S.stage].wid * 0.4;
-    G.fx.push({ type: 'wake', x: sh.x - Math.cos(sh.angle) * len + Math.cos(sh.angle + 1.57) * w * side * 0.5, y: sh.y - Math.sin(sh.angle) * len + Math.sin(sh.angle + 1.57) * w * side * 0.5,
-      vx: Math.cos(sh.angle + 1.57 * side) * 12, vy: Math.sin(sh.angle + 1.57 * side) * 12, life: 1.6, max: 1.6, r: 3 + S.stage });
-  }
-  if (sh.speed > 60 && rnd() < dt * 20) addFx('foam', sh.x + Math.cos(sh.angle) * len, sh.y + Math.sin(sh.angle) * len, 1, '#fff', 0.3);
-  if (S.hp < stats().maxHp * 0.5 && rnd() < dt * (S.hp < stats().maxHp * 0.25 ? 14 : 5)) addFx('smoke', sh.x + (rnd() - 0.5) * 16, sh.y + (rnd() - 0.5) * 10, 1, S.hp < stats().maxHp * 0.25 ? '#333' : '#777', 0.2);
+  // estela (se dibuja debajo del barco)
+  pushTrail(sh, sh.x - Math.cos(sh.angle) * len, sh.y - Math.sin(sh.angle) * len, sh.angle, SHIPS[S.stage].wid, sh.speed, dt);
+  // humo de daño: poco, translúcido y desde la popa para no tapar el barco
+  if (S.hp < st.maxHp * 0.5 && rnd() < dt * (S.hp < st.maxHp * 0.25 ? 5 : 2)) addFx('smoke', sh.x - Math.cos(sh.angle) * len * 0.6 + (rnd() - 0.5) * 8, sh.y - Math.sin(sh.angle) * len * 0.6 + (rnd() - 0.5) * 8, 1, S.hp < st.maxHp * 0.25 ? '#3a3a3a' : '#808080', 0.2);
   if (rnd() < dt * 0.04 && sh.speed > 30) Sfx.play('creak', 0.6);
 
   if (G.demo) { revealAround(sh.x, sh.y, 8); return; }
@@ -786,8 +788,8 @@ function updateEnemies(dt, st, zone) {
     const nx = e.x + Math.cos(e.angle) * e.speed * dt, ny = e.y + Math.sin(e.angle) * e.speed * dt;
     if (!World.blocked(nx, ny)) { e.vx = (nx - e.x) / dt; e.vy = (ny - e.y) / dt; e.x = nx; e.y = ny; e.stuck = 0; }
     else { e.angle += e.turnBias * 6 * dt; e.stuck += dt; e.vx = e.vy = 0; if (e.stuck > 3) e.turnBias *= -1; }
-    if (rnd() < dt * 20 && e.speed > 30) G.fx.push({ type: 'wake', x: e.x - Math.cos(e.angle) * 20, y: e.y - Math.sin(e.angle) * 20, vx: 0, vy: 0, life: 1.2, max: 1.2, r: 3 });
-    if (e.hp < e.maxHp * 0.5 && rnd() < dt * 8) addFx('smoke', e.x, e.y, 1, e.hp < e.maxHp * 0.3 ? '#333' : '#777', 0.2);
+    { const es = SHIPS[enemyStage(e)]; pushTrail(e, e.x - Math.cos(e.angle) * es.len * 0.45, e.y - Math.sin(e.angle) * es.len * 0.45, e.angle, es.wid, e.speed, dt); }
+    if (e.hp < e.maxHp * 0.5 && rnd() < dt * 3) addFx('smoke', e.x, e.y, 1, e.hp < e.maxHp * 0.3 ? '#333' : '#777', 0.2);
     // embestida
     e.ramCd -= dt;
     if (et.ram && d < 40 && e.ramCd <= 0 && G.mode === 'sea') { e.ramCd = 2; damagePlayer(es.dmg * 1.4, 1, 2); e.hp -= 4; sh.speed *= 0.4; floatText(sh.x, sh.y - 30, '¡Embestida!', '#ff7b7b'); }

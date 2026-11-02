@@ -56,20 +56,55 @@ const Intro = {
       g.stroke();
     }
   },
-  sideShip(g, x, y, s, rock, col, sails, broken) {
+  sideShip(g, x, y, s, rock, col, sails, broken, t) {
+    t = t || 0;
     g.save(); g.translate(x, y); g.rotate(rock); g.scale(s, s);
-    g.fillStyle = col || '#4a2c14';
-    g.beginPath(); g.moveTo(-120, -10); g.lineTo(130, -10); g.lineTo(100, 30); g.lineTo(-95, 30); g.closePath(); g.fill();
-    g.fillStyle = '#2a1808'; g.fillRect(-120, -14, 250, 6);
-    g.fillStyle = '#d4a72c'; for (let k = 0; k < 6; k++) g.fillRect(-80 + k * 32, 4, 10, 8);
-    g.fillStyle = '#4a2c14'; g.fillRect(-130, -40, 40, 30);
+    const hullC = col || '#4a2c14';
+    // jarcias (detrás de las velas)
     const masts = broken ? [-40] : [-50, 10, 70];
-    for (const mx of masts) {
-      g.fillStyle = '#3a2410'; g.fillRect(mx - 3, -160, 6, 150);
-      g.fillStyle = sails || '#efe4c8';
-      g.beginPath(); g.moveTo(mx - 45, -145); g.quadraticCurveTo(mx, -125, mx + 45, -145); g.lineTo(mx + 40, -60); g.quadraticCurveTo(mx, -45, mx - 40, -60); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(30,18,8,0.8)'; g.lineWidth = 1.2;
+    g.beginPath();
+    for (const mx of masts) { g.moveTo(mx, -158); g.lineTo(mx - 38, -12); g.moveTo(mx, -158); g.lineTo(mx + 34, -12); }
+    if (!broken) { g.moveTo(70, -158); g.lineTo(160, -24); g.moveTo(-50, -158); g.lineTo(-125, -42); }
+    g.stroke();
+    // bauprés y foque
+    if (!broken) {
+      g.strokeStyle = '#2a1808'; g.lineWidth = 5; g.beginPath(); g.moveTo(120, -18); g.lineTo(170, -40); g.stroke();
+      g.fillStyle = sails || '#efe4c8'; g.beginPath(); g.moveTo(166, -38); g.quadraticCurveTo(128, -80, 76, -150); g.quadraticCurveTo(110, -80, 112, -22); g.closePath(); g.fill();
     }
-    if (!broken) { g.fillStyle = '#111'; g.beginPath(); g.moveTo(10, -160); g.lineTo(50, -150); g.lineTo(10, -140); g.fill(); g.fillStyle = '#efe8d8'; g.beginPath(); g.arc(-50, -100, 14, 0, 6.28); g.fill(); g.fillStyle = '#111'; g.beginPath(); g.arc(-55, -102, 3, 0, 6.28); g.arc(-45, -102, 3, 0, 6.28); g.fill(); }
+    // casco con degradado
+    const hg = g.createLinearGradient(0, -14, 0, 32); hg.addColorStop(0, '#7a4a24'); hg.addColorStop(0.35, hullC); hg.addColorStop(1, '#1a0e05');
+    g.fillStyle = hg;
+    g.beginPath(); g.moveTo(-122, -44); g.lineTo(-86, -44); g.lineTo(-86, -12); g.lineTo(132, -12); g.quadraticCurveTo(126, 14, 100, 30); g.lineTo(-92, 30); g.quadraticCurveTo(-118, 10, -122, -44); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 1;
+    for (let yy = -4; yy < 30; yy += 7) { g.beginPath(); g.moveTo(-115, yy); g.lineTo(125 - (yy + 12) * 0.5, yy); g.stroke(); }
+    g.fillStyle = '#d4a72c'; g.fillRect(-122, -16, 254, 3); g.fillRect(-122, -46, 38, 3);
+    // portas de cañones y ventanas de popa iluminadas
+    for (let k = 0; k < 6; k++) { g.fillStyle = '#1a0e05'; g.fillRect(-72 + k * 32, 2, 12, 9); g.fillStyle = '#ffcf6b'; g.fillRect(-70 + k * 32, 4, 8, 5); }
+    for (let k = 0; k < 2; k++) { g.fillStyle = '#ffcf6b'; g.fillRect(-114 + k * 14, -38, 8, 8); }
+    // farol de popa
+    g.fillStyle = 'rgba(255,207,107,0.35)'; g.beginPath(); g.arc(-122, -54, 12 + Math.sin(t * 4) * 1.5, 0, 6.28); g.fill();
+    g.fillStyle = '#ffcf6b'; g.fillRect(-125, -58, 6, 8);
+    for (const mx of masts) {
+      g.fillStyle = '#3a2410'; g.fillRect(mx - 3, -165, 6, 155);
+      g.fillStyle = '#2a1808'; g.fillRect(mx - 52, -150, 104, 4); g.fillRect(mx - 46, -100, 92, 4);
+      for (const [y0, y1, w0, w1] of [[-146, -102, 48, 44], [-96, -52, 44, 40]]) {
+        const sg = g.createLinearGradient(mx - w0, 0, mx + w0, 0);
+        sg.addColorStop(0, sails ? 'rgba(0,0,0,0.25)' : '#d6c8a8'); sg.addColorStop(0.4, sails || '#f6eedb'); sg.addColorStop(1, sails ? 'rgba(0,0,0,0.15)' : '#e2d4b4');
+        g.fillStyle = sails || '#efe4c8';
+        g.beginPath(); g.moveTo(mx - w0, y0); g.quadraticCurveTo(mx, y0 + 10, mx + w0, y0); g.lineTo(mx + w1, y1); g.quadraticCurveTo(mx + 4, y1 + 14, mx - w1, y1); g.closePath(); g.fill();
+        g.fillStyle = sg; g.fill();
+      }
+      g.fillStyle = '#3a2410'; g.fillRect(mx - 9, -170, 18, 6);
+    }
+    if (!broken) {
+      const wv = Math.sin(t * 5) * 4;
+      g.fillStyle = '#111'; g.beginPath(); g.moveTo(10, -188); g.quadraticCurveTo(30, -186 + wv, 52, -182 + wv); g.lineTo(52, -166 + wv); g.quadraticCurveTo(30, -170 + wv, 10, -170); g.fill();
+      g.fillStyle = '#efe8d8'; g.beginPath(); g.arc(30, -177 + wv * 0.6, 4.5, 0, 6.28); g.fill();
+      g.fillStyle = '#3a2410'; g.fillRect(8, -190, 3, 25);
+      g.fillStyle = '#efe8d8'; g.beginPath(); g.arc(-50, -120, 13, 0, 6.28); g.fill(); g.fillRect(-56, -110, 12, 7);
+      g.fillStyle = '#111'; g.beginPath(); g.arc(-55, -122, 3.4, 0, 6.28); g.arc(-45, -122, 3.4, 0, 6.28); g.fill();
+    }
     g.restore();
   },
   draw(cv, kind, t) {
@@ -77,17 +112,31 @@ const Intro = {
     const fade = Math.min(1, t * 1.2);
     g.globalAlpha = 1;
     if (kind === 'ship') {
-      const sky = g.createLinearGradient(0, 0, 0, hz); sky.addColorStop(0, '#1b2a4a'); sky.addColorStop(1, '#c86a3a'); g.fillStyle = sky; g.fillRect(0, 0, W, hz);
-      g.fillStyle = '#ffcf6b'; g.beginPath(); g.arc(W * 0.75, hz, H * 0.12, Math.PI, 0); g.fill();
+      const sky = g.createLinearGradient(0, 0, 0, hz); sky.addColorStop(0, '#1b2a4a'); sky.addColorStop(0.6, '#8a4a52'); sky.addColorStop(1, '#e0874a'); g.fillStyle = sky; g.fillRect(0, 0, W, hz);
+      for (let k = 0; k < 40; k++) { g.fillStyle = 'rgba(255,255,255,' + (0.2 + hash2(k, 1, 7) * 0.5) * Math.max(0, 1 - hash2(k, 2, 7) * 2.2) + ')'; g.fillRect(hash2(k, 3, 7) * W, hash2(k, 2, 7) * hz * 0.5, 2, 2); }
+      const sx = W * 0.75, sr = H * 0.12;
+      const glow = g.createRadialGradient(sx, hz, sr * 0.5, sx, hz, sr * 4); glow.addColorStop(0, 'rgba(255,200,100,0.55)'); glow.addColorStop(1, 'rgba(255,140,60,0)');
+      g.fillStyle = glow; g.fillRect(0, 0, W, hz);
+      g.fillStyle = '#ffcf6b'; g.beginPath(); g.arc(sx, hz, sr, Math.PI, 0); g.fill();
+      // nubes alargadas
+      g.fillStyle = 'rgba(60,30,50,0.45)';
+      for (let k = 0; k < 4; k++) { const cx = ((hash2(k, 1, 9) * W + t * 12 * (k + 1)) % (W * 1.3)) - W * 0.15, cy = hz * (0.25 + k * 0.13); g.beginPath(); g.ellipse(cx, cy, W * 0.12, H * 0.012, 0, 0, 6.28); g.ellipse(cx + W * 0.05, cy - H * 0.01, W * 0.07, H * 0.012, 0, 0, 6.28); g.fill(); }
       this.sea(g, W, H, hz, '#2a4f7a', '#0d1f36', t, 3);
-      this.sideShip(g, W * 0.15 + t * W * 0.05, hz + H * 0.06, H / 700, Math.sin(t * 1.3) * 0.03, '#3b2414', '#8e1f1f');
-      g.fillStyle = 'rgba(255,215,90,.9)';
-      for (let k = 0; k < 14; k++) { const a = (t * 2 + k) % 3; g.fillRect(W * 0.2 + t * W * 0.05 + k * 9 * H / 700, hz - a * 30 * H / 700, 4, 4); }
+      // reflejo del sol en el agua
+      g.fillStyle = 'rgba(255,200,110,0.45)'; for (let k = 0; k < 9; k++) g.fillRect(sx - sr * (1 - k / 11) + Math.sin(t * 2 + k) * 10, hz + 6 + k * H * 0.035, sr * 2 * (1 - k / 11), 3);
+      const shx = W * 0.15 + t * W * 0.05;
+      this.sideShip(g, shx, hz + H * 0.06, H / 700, Math.sin(t * 1.3) * 0.03, '#3b2414', '#8e1f1f', false, t);
+      // destellos del tesoro de Garra Roja
+      for (let k = 0; k < 7; k++) {
+        const ph = (t * 0.8 + k / 7) % 1, a = Math.sin(ph * Math.PI), r = (3 + hash2(k, 1, 3) * 4) * a * H / 500;
+        const px = shx + (-60 + hash2(k, 2, 3) * 150) * H / 700, py = hz + H * 0.06 + (-20 - ph * 60) * H / 700;
+        g.fillStyle = 'rgba(255,225,120,' + a + ')'; g.fillRect(px - r, py - r * 0.18, r * 2, r * 0.36); g.fillRect(px - r * 0.18, py - r, r * 0.36, r * 2);
+      }
     } else if (kind === 'storm') {
       g.fillStyle = '#0a0f1a'; g.fillRect(0, 0, W, hz);
       if (Math.sin(t * 7) > 0.92 || (t > 1 && t < 1.15)) { g.fillStyle = 'rgba(220,230,255,0.8)'; g.fillRect(0, 0, W, H); }
       this.sea(g, W, H, hz, '#18283c', '#060c16', t * 1.8, 12);
-      this.sideShip(g, W * 0.45, hz + H * 0.08 + t * 6, H / 700, -0.2 - t * 0.04, '#2a1808', '#5a1414', t > 2.5);
+      this.sideShip(g, W * 0.45, hz + H * 0.08 + t * 6, H / 700, -0.2 - t * 0.04, '#2a1808', '#5a1414', t > 2.5, t);
       // tentáculos
       g.strokeStyle = '#7a2a52'; g.lineCap = 'round';
       for (let k = 0; k < 4; k++) {

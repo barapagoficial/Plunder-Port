@@ -9,6 +9,7 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
   html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0a1422; font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif; color: #fff; touch-action: none; }
   #game { position: absolute; inset: 0; display: block; }
+  #loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #ffe9b0; font-style: italic; z-index: 50; background: #0a1422; letter-spacing: 1px; }
   .ic { display: inline-block; vertical-align: middle; flex: none; }
   .hud { position: absolute; pointer-events: none; text-shadow: 0 1px 2px #000; }
   .woodbox { background: linear-gradient(180deg, rgba(74,44,20,.88), rgba(42,24,10,.88)); border: 2px solid var(--line); border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.12); }
@@ -23,9 +24,9 @@
   #hudTop { top: max(6px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); text-align: center; max-width: 46%; display: flex; flex-direction: column; align-items: center; gap: 3px; }
   #obj, #contract { background: rgba(20,10,2,0.62); border-radius: 9px; padding: 4px 10px; font-size: 12px; color: #ffe9b0; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(201,163,90,.4); }
   #contract { font-size: 11px; color: #c9e7ff; display: none; }
-  #toasts { position: absolute; top: 62px; left: 50%; transform: translateX(-50%); width: min(520px, 62vw); pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 5; }
-  .toast { background: linear-gradient(rgba(40,22,8,.92), rgba(25,12,4,.92)); border: 1px solid var(--line); color: #fff3d6; padding: 6px 12px; border-radius: 9px; font-size: 13px; text-align: center; animation: tin .3s cubic-bezier(.2,1.4,.5,1); display: flex; align-items: center; gap: 8px; box-shadow: 0 3px 8px rgba(0,0,0,.5); }
-  @keyframes tin { from { opacity: 0; transform: translateY(-10px) scale(.9); } to { opacity: 1; transform: none; } }
+  #toasts { position: absolute; bottom: max(110px, calc(env(safe-area-inset-bottom) + 100px)); left: max(12px, env(safe-area-inset-left)); width: min(380px, 40vw); pointer-events: none; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; z-index: 5; }
+  .toast { background: linear-gradient(rgba(40,22,8,.9), rgba(25,12,4,.9)); border: 1px solid var(--line); border-left: 4px solid var(--gold); color: #fff3d6; padding: 6px 12px; border-radius: 9px; font-size: 13px; text-align: left; animation: tin .3s cubic-bezier(.2,1.4,.5,1); display: flex; align-items: center; gap: 8px; box-shadow: 0 3px 8px rgba(0,0,0,.5); }
+  @keyframes tin { from { opacity: 0; transform: translateX(-16px) scale(.94); } to { opacity: 1; transform: none; } }
   #hudR { top: max(8px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: auto; }
   #miniWrap { position: relative; width: 118px; height: 118px; }
   #mini { width: 118px; height: 118px; border-radius: 50%; border: 4px solid #c9a35a; background: #0a1422; box-shadow: 0 3px 10px #000, inset 0 0 12px #000; cursor: pointer; }
@@ -44,18 +45,19 @@
   #townBtn { grid-column: 1 / span 2; grid-row: 1; padding: 9px 14px; font-size: 13px; display: none; }
   .cd { position: absolute; inset: -4px; border-radius: 50%; pointer-events: none; }
   .round .lbl { font-size: 10px; letter-spacing: 1px; margin-top: 2px; }
+  #specialBtn .lbl { font-size: 7.5px; letter-spacing: 0; margin-top: 1px; }
   #actionBtn { position: absolute; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%); padding: 12px 22px; font-size: 17px; display: none; background: linear-gradient(#2e7d32, #1b4d1e); border-color: #a5d6a7; animation: pulse 1.2s infinite; z-index: 3; }
   #actionBtn.hot { background: linear-gradient(#c98a1e, #7a4a10); border-color: #ffe08a; }
   @keyframes pulse { 50% { box-shadow: 0 4px 0 #0a2a0c, 0 0 22px rgba(255,240,170,.7); } }
   #bossBar { position: absolute; bottom: max(16px, env(safe-area-inset-bottom)); left: max(16px, env(safe-area-inset-left)); width: min(320px, 34vw); display: none; pointer-events: none; padding: 6px 10px; }
   #bossBar .bar { height: 13px; }
   #bossName { font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 6px; color: #ffb3b3; }
-  #raidBox { position: absolute; left: max(16px, env(safe-area-inset-left)); bottom: 70px; background: rgba(120,20,10,.85); border-radius: 9px; padding: 5px 10px; font-size: 12px; display: none; pointer-events: none; align-items: center; gap: 6px; border: 1px solid #ff8a65; }
-  #zoneBanner { position: absolute; top: 16%; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; opacity: 0; transition: opacity .8s; }
+  #raidBox { position: absolute; left: max(16px, env(safe-area-inset-left)); bottom: 72px; background: rgba(120,20,10,.85); border-radius: 9px; padding: 5px 10px; font-size: 12px; display: none; pointer-events: none; align-items: center; gap: 6px; border: 1px solid #ff8a65; }
+  #zoneBanner { position: absolute; top: 17%; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; opacity: 0; transition: opacity .8s; }
   #zoneBanner .t { font-size: clamp(22px, 4.5vw, 38px); color: #ffe9b0; text-shadow: 0 3px 0 #3b2414, 0 6px 18px #000; letter-spacing: 2px; font-weight: bold; }
   #zoneBanner .s { font-size: 14px; color: #ffd9a0; font-style: italic; margin-top: 2px; }
   #zoneBanner .line { height: 2px; width: 70%; margin: 6px auto; background: linear-gradient(90deg, transparent, var(--line), transparent); }
-  #bigBanner { position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%) scale(.5); opacity: 0; pointer-events: none; z-index: 6; transition: transform .45s cubic-bezier(.2,1.5,.4,1), opacity .3s; text-align: center; padding: 12px 26px 12px; min-width: 260px; max-width: 80vw; }
+  #bigBanner { position: absolute; top: 27%; left: 50%; transform: translate(-50%, -50%) scale(.5); opacity: 0; pointer-events: none; z-index: 6; transition: transform .45s cubic-bezier(.2,1.5,.4,1), opacity .3s; text-align: center; padding: 12px 26px 12px; min-width: 260px; max-width: 80vw; }
   #bigBanner.on { transform: translate(-50%, -50%) scale(1); opacity: 1; }
   #bigBanner .t { font-size: 22px; color: var(--gold); font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; }
   #bigBanner .s { font-size: 13px; color: #ffe9b0; margin-top: 4px; }
@@ -113,11 +115,12 @@
   #introSkip { position: absolute; top: 14px; right: 14px; padding: 7px 14px; font-size: 13px; }
   #introTap { position: absolute; bottom: 4%; left: 50%; transform: translateX(-50%); font-size: 12px; opacity: .6; animation: blink 1.5s infinite; }
   @keyframes blink { 50% { opacity: .2; } }
-  @media (max-height: 430px) { #hudL { font-size: 11px; width: 172px; padding: 5px 8px; } #hudL .row { line-height: 17px; } #gold { font-size: 15px; } #miniWrap, #mini { width: 90px; height: 90px; } #fireBtn { width: 80px; height: 80px; } #specialBtn { width: 54px; height: 54px; } #patchBtn { width: 80px; height: 40px; font-size: 12px; } .panel h2 { font-size: 16px; padding: 6px 12px; } .body { padding: 8px 10px; } .card { padding: 6px 8px; margin-bottom: 6px; } }
+  @media (max-height: 430px) { #hudL { font-size: 11px; width: 172px; padding: 5px 8px; } #hudL .row { line-height: 17px; } #gold { font-size: 15px; } #miniWrap, #mini { width: 90px; height: 90px; } #fireBtn { width: 80px; height: 80px; } #specialBtn { width: 54px; height: 54px; } #patchBtn { width: 80px; height: 40px; font-size: 12px; } .panel h2 { font-size: 16px; padding: 6px 12px; } .body { padding: 8px 10px; } .card { padding: 6px 8px; margin-bottom: 6px; } #toasts { bottom: max(104px, calc(env(safe-area-inset-bottom) + 96px)); width: min(330px, 38vw); } .toast { font-size: 12px; padding: 5px 10px; } }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+<div id="loading">Preparando los mares...</div>
 
 <div id="hudL" class="hud woodbox">
   <div class="row"><span id="gold"></span><span id="shipName"></span></div>
@@ -167,6 +170,7 @@
 <script src="js/icons.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/world.js"></script>
+<script src="js/terrain.js"></script>
 <script src="js/game.js"></script>
 <script src="js/land.js"></script>
 <script src="js/render.js"></script>
