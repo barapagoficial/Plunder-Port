@@ -1,4 +1,4 @@
-# ⚓ Plunder Port
+# Plunder Port
 
 Juego de piratas 2D con vista desde arriba: empiezas con un bote remendado lleno de huecos y terminas con un galeón y tu propia sala de tesoros.
 
@@ -8,23 +8,22 @@ Juego de piratas 2D con vista desde arriba: empiezas con un bote remendado lleno
 Descarga [`dist/PlunderPort.apk`](dist/PlunderPort.apk) en tu celular e instálalo (permite "instalar apps de origen desconocido").
 
 ## Qué incluye
-- Bote con huecos y agua, tablas para taparlos, reparación en puerto.
-- Mejoras por partes: casco, velas, bodega, cañones, timón (6 niveles).
-- 5 barcos: Bote remendado, Balandra, Bergantín, Fragata, Galeón (con sala de tesoros a bordo).
-- Mapa de 200×200 con niebla de guerra, 4 zonas de peligro creciente: Mar de los Novatos, Arrecifes de Coral, Aguas de Tormenta y el Triángulo Maldito.
-- 5 puertos con precios distintos: mercado, tienda de partes, astillero, taberna e inmobiliaria.
-- Botín: monedas, cofres comunes, rubíes, diamantes, cofres raros y 6 objetos legendarios para las vitrinas.
-- Mapas del tesoro en 3 pedazos, cuevas secretas, naufragios (con buzo) y rumores.
-- Piratas rivales que aparecen más cuanto más botín llevas, tormentas, viento, arrecifes y rocas.
-- Jefes: Serpiente Marina, Kraken y Barco Fantasma, con trofeos.
-- Tripulación: carpintero, vigía, artillero, cocinero y buzo.
-- Tabernas propias con ingresos pasivos (incluso con el juego cerrado), niveles, tabernero y ataques de rivales.
-- Casa del capitán, decoración y sala de tesoros que se llena visualmente.
-- Guardado automático.
+- **Introducción animada** con la historia del grumete del Capitán Garra Roja, y pantalla de título con el mundo en vivo.
+- **Navegación y exploración:** mapa de 200×200 con niebla de guerra, 4 zonas de peligro creciente, viento, tormentas, arrecifes, rocas, ciclo de día y noche con faroles, gaviotas y delfines. Una flecha dorada guía al siguiente objetivo.
+- **A pie:** desembarca en cualquier isla, camina, cava tesoros enterrados, entra a cuevas y pelea con cangrejos y esqueletos con la espada. En los puertos paseas por el pueblo, hablas con los aldeanos y entras a cada edificio.
+- **El barco:** hace agua (huecos, tablas, reparación), mejoras por partes (casco, velas, bodega, cañones, timón) y 5 barcos: Bote, Balandra, Bergantín, Fragata y Galeón.
+- **Combate:** cañones con autoapuntado, andanada especial, golpes críticos, 3 tipos de piratas rivales (balandras rápidas, cañoneras, embestidores), abordajes, barriles explosivos y hundimientos animados.
+- **Jefes:** Serpiente Marina, Kraken y Barco Fantasma, con trofeos.
+- **Economía:** 5 puertos con precios distintos, botín de monedas a cofres raros, 6 objetos legendarios con efectos, mapas del tesoro en 3 pedazos, botellas con mensajes, contratos en la taberna, rumores.
+- **Tripulación:** carpintero, vigía, artillero, cocinero y buzo.
+- **Tabernas propias** con ingresos pasivos incluso con el juego cerrado, niveles, tabernero y ataques de rivales.
+- **Final:** casa del capitán o galeón con una sala de tesoros animada que se llena con oro, vitrinas, trofeos y decoración.
+- **Audio sintetizado:** efectos, ambiente de mar y viento, y música procedural estilo saloma pirata que se intensifica en combate.
+- Iconos vectoriales propios (sin emojis), vibración en golpes y guardado automático.
 
 ## Controles
-- **Celular:** toca el mar (o el mapa) para navegar; 💥 dispara; 🪵 tapa huecos; botón verde para atracar/explorar.
-- **PC (navegador):** WASD/flechas, Espacio = fuego, E = acción, R = tapar, M = mapa, Esc = menú.
+- **Celular:** toca el mar (o el mapa) para navegar; botón Fuego para disparar; Andanada para la descarga especial; Tapar para los huecos; el botón verde central sirve para atracar, desembarcar, cavar, abordar o entrar. En tierra, toca el suelo para caminar y usa Espada.
+- **PC (navegador):** WASD/flechas, Espacio = fuego/espada, Q = andanada, E = acción, R = tapar, M = mapa, Esc = menú.
 
 ## Estructura
 - `game/` — el juego en HTML5 Canvas + JavaScript puro (sin dependencias). Se puede abrir `game/index.html` en un navegador.

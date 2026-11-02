@@ -5,120 +5,173 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Plunder Port</title>
 <style>
+  :root { --wood: #5a3519; --wood2: #3d230f; --gold: #ffd23f; --parch: #f3e2b3; --parch2: #e3c98d; --ink: #3b2414; --line: #c9a35a; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
-  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0b1828; font-family: 'Trebuchet MS', Verdana, sans-serif; color: #fff; touch-action: none; }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0a1422; font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif; color: #fff; touch-action: none; }
   #game { position: absolute; inset: 0; display: block; }
+  .ic { display: inline-block; vertical-align: middle; flex: none; }
   .hud { position: absolute; pointer-events: none; text-shadow: 0 1px 2px #000; }
-  #hudL { top: 8px; left: 10px; background: rgba(10,20,35,0.62); border: 1px solid rgba(255,220,150,0.25); border-radius: 10px; padding: 6px 9px; font-size: 13px; width: 190px; }
-  #hudL .row { display: flex; justify-content: space-between; gap: 6px; line-height: 19px; }
-  .bar { height: 8px; background: rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden; margin: 2px 0 4px; }
-  .bar > div { height: 100%; border-radius: 4px; transition: width .2s; }
-  #gold { color: #ffd23f; font-weight: bold; font-size: 16px; }
-  #hudTop { top: 6px; left: 50%; transform: translateX(-50%); text-align: center; max-width: 46%; }
-  #obj { background: rgba(10,20,35,0.62); border-radius: 8px; padding: 4px 10px; font-size: 12px; color: #ffe9b0; display: inline-block; }
-  #toasts { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); width: min(520px, 60vw); pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .toast { background: rgba(20,12,4,0.85); border: 1px solid #c9a35a; color: #fff3d6; padding: 6px 12px; border-radius: 8px; font-size: 13px; text-align: center; animation: tin .25s ease-out; }
-  @keyframes tin { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
-  #hudR { top: 8px; right: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: auto; }
-  #mini { width: 112px; height: 112px; border-radius: 50%; border: 3px solid #c9a35a; background: #0b1828; box-shadow: 0 2px 8px #000; }
-  #windBox { font-size: 11px; background: rgba(10,20,35,0.62); border-radius: 8px; padding: 2px 8px; display: flex; align-items: center; gap: 4px; pointer-events: none; }
-  #windArrow { display: inline-block; font-size: 16px; color: #bfe6ff; }
-  .btn { pointer-events: auto; border: 2px solid #c9a35a; background: linear-gradient(#6b4423, #4a2c14); color: #ffe9b0; font-weight: bold; border-radius: 12px; font-family: inherit; cursor: pointer; text-shadow: 0 1px 1px #000; box-shadow: 0 3px 0 #2a1808, 0 4px 8px rgba(0,0,0,.5); }
-  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #2a1808; }
-  .btn:disabled { opacity: .45; }
-  #menuBtn { width: 44px; height: 38px; font-size: 20px; }
-  #controls { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
-  #fireBtn { width: 92px; height: 92px; border-radius: 50%; font-size: 30px; background: radial-gradient(#b3261e, #6d140f); border-color: #ffb347; }
-  #fireBtn .r { font-size: 11px; display: block; }
-  #patchBtn { width: 92px; height: 50px; font-size: 14px; }
-  #actionBtn { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); padding: 12px 22px; font-size: 17px; display: none; background: linear-gradient(#2e7d32, #1b4d1e); border-color: #a5d6a7; animation: pulse 1.2s infinite; }
-  @keyframes pulse { 50% { box-shadow: 0 3px 0 #0a2a0c, 0 0 18px #a5d6a7; } }
-  #bossBar { position: absolute; bottom: 14px; left: 14px; width: min(300px, 34vw); display: none; pointer-events: none; }
-  #bossBar .bar { height: 12px; }
-  #raidBox { position: absolute; left: 14px; bottom: 54px; background: rgba(120,20,10,.8); border-radius: 8px; padding: 5px 10px; font-size: 12px; display: none; pointer-events: none; }
-  #overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 30; }
-  #dlgLayer { position: absolute; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 40; }
-  .panel { background: linear-gradient(#f3e2b3, #e3c98d); color: #3b2414; border: 4px solid #6b4423; border-radius: 14px; width: min(860px, 96vw); max-height: 94vh; display: flex; flex-direction: column; box-shadow: 0 10px 40px #000; text-shadow: none; }
-  .panel h2 { margin: 0; padding: 8px 14px; background: #6b4423; color: #ffe9b0; font-size: 19px; display: flex; justify-content: space-between; align-items: center; border-radius: 9px 9px 0 0; }
-  .panel h2 .g { color: #ffd23f; font-size: 16px; }
+  .woodbox { background: linear-gradient(180deg, rgba(74,44,20,.88), rgba(42,24,10,.88)); border: 2px solid var(--line); border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.12); }
+  #hudL { top: max(8px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); padding: 7px 10px 6px; font-size: 13px; width: 200px; }
+  #hudL .row { display: flex; justify-content: space-between; align-items: center; gap: 5px; line-height: 20px; }
+  #hudL .row span { display: inline-flex; align-items: center; gap: 4px; }
+  #gold { color: var(--gold); font-weight: bold; font-size: 18px; transition: transform .15s; }
+  #gold.bump { transform: scale(1.25); }
+  #shipName { font-size: 11px; color: #e8d3a0; font-style: italic; }
+  .bar { height: 9px; background: rgba(0,0,0,0.55); border-radius: 5px; overflow: hidden; margin: 1px 0 3px; border: 1px solid rgba(0,0,0,.6); }
+  .bar > div { height: 100%; border-radius: 4px; transition: width .25s; background-image: linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,0) 60%); }
+  #hudTop { top: max(6px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); text-align: center; max-width: 46%; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  #obj, #contract { background: rgba(20,10,2,0.62); border-radius: 9px; padding: 4px 10px; font-size: 12px; color: #ffe9b0; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(201,163,90,.4); }
+  #contract { font-size: 11px; color: #c9e7ff; display: none; }
+  #toasts { position: absolute; top: 62px; left: 50%; transform: translateX(-50%); width: min(520px, 62vw); pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 5; }
+  .toast { background: linear-gradient(rgba(40,22,8,.92), rgba(25,12,4,.92)); border: 1px solid var(--line); color: #fff3d6; padding: 6px 12px; border-radius: 9px; font-size: 13px; text-align: center; animation: tin .3s cubic-bezier(.2,1.4,.5,1); display: flex; align-items: center; gap: 8px; box-shadow: 0 3px 8px rgba(0,0,0,.5); }
+  @keyframes tin { from { opacity: 0; transform: translateY(-10px) scale(.9); } to { opacity: 1; transform: none; } }
+  #hudR { top: max(8px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: auto; }
+  #miniWrap { position: relative; width: 118px; height: 118px; }
+  #mini { width: 118px; height: 118px; border-radius: 50%; border: 4px solid #c9a35a; background: #0a1422; box-shadow: 0 3px 10px #000, inset 0 0 12px #000; cursor: pointer; }
+  #compassN { position: absolute; top: -4px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: bold; color: var(--gold); background: var(--wood2); border-radius: 8px; padding: 0 5px; border: 1px solid var(--line); pointer-events: none; }
+  #infoBox { font-size: 11px; padding: 3px 8px; display: flex; align-items: center; gap: 6px; pointer-events: none; }
+  #windArrow { display: inline-block; transition: transform .5s; }
+  .btn { pointer-events: auto; border: 2px solid var(--line); background: linear-gradient(#7a4a24, #4a2c14); color: #ffe9b0; font-weight: bold; border-radius: 12px; font-family: inherit; cursor: pointer; text-shadow: 0 1px 1px #000; box-shadow: 0 4px 0 #2a1808, 0 5px 10px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.2); display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: transform .08s, filter .15s; }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #2a1808, inset 0 1px 0 rgba(255,255,255,.2); }
+  .btn:disabled { opacity: .45; filter: grayscale(.6); }
+  #menuBtn { width: 44px; height: 40px; padding: 0; }
+  #controls { position: absolute; right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; gap: 10px; align-items: end; justify-items: end; }
+  .round { border-radius: 50%; padding: 0; position: relative; flex-direction: column; gap: 0; }
+  #fireBtn { grid-column: 2; grid-row: 2; width: 96px; height: 96px; background: radial-gradient(circle at 40% 35%, #d13b2f, #6d140f); border-color: #ffb347; font-size: 11px; }
+  #specialBtn { grid-column: 1; grid-row: 2; width: 64px; height: 64px; background: radial-gradient(circle at 40% 35%, #c98a1e, #6b4012); border-color: #ffe08a; font-size: 9px; }
+  #patchBtn { grid-column: 2; grid-row: 1; width: 96px; height: 46px; font-size: 13px; }
+  #townBtn { grid-column: 1 / span 2; grid-row: 1; padding: 9px 14px; font-size: 13px; display: none; }
+  .cd { position: absolute; inset: -4px; border-radius: 50%; pointer-events: none; }
+  .round .lbl { font-size: 10px; letter-spacing: 1px; margin-top: 2px; }
+  #actionBtn { position: absolute; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%); padding: 12px 22px; font-size: 17px; display: none; background: linear-gradient(#2e7d32, #1b4d1e); border-color: #a5d6a7; animation: pulse 1.2s infinite; z-index: 3; }
+  #actionBtn.hot { background: linear-gradient(#c98a1e, #7a4a10); border-color: #ffe08a; }
+  @keyframes pulse { 50% { box-shadow: 0 4px 0 #0a2a0c, 0 0 22px rgba(255,240,170,.7); } }
+  #bossBar { position: absolute; bottom: max(16px, env(safe-area-inset-bottom)); left: max(16px, env(safe-area-inset-left)); width: min(320px, 34vw); display: none; pointer-events: none; padding: 6px 10px; }
+  #bossBar .bar { height: 13px; }
+  #bossName { font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 6px; color: #ffb3b3; }
+  #raidBox { position: absolute; left: max(16px, env(safe-area-inset-left)); bottom: 70px; background: rgba(120,20,10,.85); border-radius: 9px; padding: 5px 10px; font-size: 12px; display: none; pointer-events: none; align-items: center; gap: 6px; border: 1px solid #ff8a65; }
+  #zoneBanner { position: absolute; top: 16%; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; opacity: 0; transition: opacity .8s; }
+  #zoneBanner .t { font-size: clamp(22px, 4.5vw, 38px); color: #ffe9b0; text-shadow: 0 3px 0 #3b2414, 0 6px 18px #000; letter-spacing: 2px; font-weight: bold; }
+  #zoneBanner .s { font-size: 14px; color: #ffd9a0; font-style: italic; margin-top: 2px; }
+  #zoneBanner .line { height: 2px; width: 70%; margin: 6px auto; background: linear-gradient(90deg, transparent, var(--line), transparent); }
+  #bigBanner { position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%) scale(.5); opacity: 0; pointer-events: none; z-index: 6; transition: transform .45s cubic-bezier(.2,1.5,.4,1), opacity .3s; text-align: center; padding: 12px 26px 12px; min-width: 260px; max-width: 80vw; }
+  #bigBanner.on { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  #bigBanner .t { font-size: 22px; color: var(--gold); font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  #bigBanner .s { font-size: 13px; color: #ffe9b0; margin-top: 4px; }
+  #coinLayer { position: absolute; inset: 0; pointer-events: none; z-index: 7; overflow: hidden; }
+  .flycoin { position: absolute; transition: transform .75s cubic-bezier(.5,-0.3,.7,1), opacity .2s .65s; will-change: transform; }
+  #overlay, #dlgLayer { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; }
+  #overlay { background: rgba(0,0,0,0.55); z-index: 30; }
+  #dlgLayer { background: rgba(0,0,0,0.45); z-index: 40; }
+  .panel { background: linear-gradient(var(--parch), var(--parch2)); color: var(--ink); border: 4px solid #6b4423; border-radius: 14px; width: min(880px, 96vw); max-height: 94vh; display: flex; flex-direction: column; box-shadow: 0 12px 44px #000, inset 0 0 40px rgba(150,100,40,.25); text-shadow: none; animation: pin .3s cubic-bezier(.2,1.3,.5,1); }
+  @keyframes pin { from { transform: scale(.85) translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .panel h2 { margin: 0; padding: 8px 14px; background: linear-gradient(#7a4a24, #4a2c14); color: #ffe9b0; font-size: 19px; display: flex; justify-content: space-between; align-items: center; border-radius: 9px 9px 0 0; gap: 8px; text-shadow: 0 1px 2px #000; }
+  .panel h2 > span { display: inline-flex; align-items: center; gap: 8px; }
+  .panel h2 .g { color: var(--gold); font-size: 16px; }
   .tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px 0; background: #8a5a32; }
-  .tab { padding: 6px 10px; border-radius: 8px 8px 0 0; background: #b98552; color: #3b2414; font-weight: bold; font-size: 13px; border: none; font-family: inherit; }
-  .tab.on { background: #f3e2b3; }
+  .tab { padding: 6px 10px; border-radius: 8px 8px 0 0; background: #b98552; color: var(--ink); font-weight: bold; font-size: 13px; border: none; font-family: inherit; display: inline-flex; align-items: center; gap: 5px; }
+  .tab.on { background: var(--parch); }
   .body { padding: 10px 14px; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; font-size: 14px; }
-  .card { background: rgba(255,255,255,0.45); border: 1px solid #b98552; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+  .card { background: rgba(255,255,255,0.42); border: 1px solid #b98552; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+  .card .ico { width: 38px; height: 38px; border-radius: 9px; background: rgba(107,68,35,.15); display: flex; align-items: center; justify-content: center; flex: none; }
   .card .info { flex: 1; }
-  .card .t { font-weight: bold; font-size: 15px; }
-  .card .d { font-size: 12px; opacity: .8; }
+  .card .t { font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .card .d { font-size: 12px; opacity: .85; }
   .pb { padding: 8px 12px; font-size: 13px; border-radius: 9px; white-space: nowrap; }
   .pb.green { background: linear-gradient(#2e7d32, #1b4d1e); border-color: #a5d6a7; color: #fff; }
   .pb.red { background: linear-gradient(#a83228, #6d140f); color: #fff; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
   .lvl { display: inline-flex; gap: 2px; margin-left: 6px; }
   .lvl i { width: 10px; height: 10px; border-radius: 2px; background: #b98552; display: inline-block; }
-  .lvl i.on { background: #2e7d32; }
+  .lvl i.on { background: #2e7d32; box-shadow: inset 0 1px 0 rgba(255,255,255,.4); }
   .up { color: #1b7d22; font-weight: bold; } .down { color: #b3261e; font-weight: bold; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   td, th { padding: 5px 4px; border-bottom: 1px solid rgba(107,68,35,.3); text-align: left; }
-  .foot { padding: 8px 14px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; border-top: 2px solid #b98552; }
-  .dlg { width: min(520px, 92vw); }
+  td .ic { margin-right: 4px; }
+  .sec { font-weight: bold; margin: 10px 0 5px; display: flex; align-items: center; gap: 6px; font-size: 15px; border-bottom: 2px solid rgba(107,68,35,.3); padding-bottom: 3px; }
+  .foot { padding: 8px 14px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; border-top: 2px solid #b98552; align-items: center; }
+  .dlg { width: min(540px, 92vw); }
   .dlg .body { font-size: 15px; line-height: 1.45; text-align: center; }
-  #roomCv { width: auto; max-width: 100%; max-height: calc(94vh - 120px); margin: 0 auto; aspect-ratio: 16 / 9; border-radius: 8px; border: 3px solid #6b4423; display: block; background: #2a1808; }
-  #mapCv { width: 100%; height: 100%; display: block; touch-action: none; }
-  .mapWrap { width: min(94vw, 150vh); height: 92vh; position: relative; }
+  .dlg .bigic { display: flex; justify-content: center; margin: 2px 0 8px; animation: spinin .6s cubic-bezier(.2,1.5,.4,1); }
+  @keyframes spinin { from { transform: scale(0) rotate(-90deg); } to { transform: none; } }
+  .legend-get { margin: 10px auto 6px; padding: 8px; background: rgba(255,210,63,.18); border: 1px solid #d4a72c; border-radius: 10px; }
+  #roomCv { width: auto; max-width: 100%; max-height: calc(94vh - 130px); margin: 0 auto; aspect-ratio: 16 / 9; border-radius: 8px; border: 3px solid #6b4423; display: block; background: #2a1808; }
+  #mapCv { width: 100%; height: 100%; display: block; touch-action: none; border-radius: 10px; }
+  .mapWrap { width: min(96vw, 150vh); height: 92vh; position: relative; border: 4px solid #6b4423; border-radius: 14px; box-shadow: 0 10px 40px #000; animation: pin .3s; }
   .mapWrap .close { position: absolute; top: 8px; right: 8px; }
   .mapWrap .hint { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.6); padding: 4px 10px; border-radius: 8px; font-size: 12px; pointer-events: none; }
-  #title { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(20,60,100,.75), rgba(5,10,20,.95)); text-align: center; }
-  #title h1 { font-size: clamp(40px, 9vw, 84px); margin: 0; color: #ffd23f; text-shadow: 0 4px 0 #6b4423, 0 8px 20px #000; letter-spacing: 2px; }
-  #title p { color: #ffe9b0; margin: 6px 0 22px; font-size: 15px; }
-  #title .btn { padding: 12px 34px; font-size: 20px; margin: 6px; }
-  .small { font-size: 12px; opacity: .8; }
-  @media (max-height: 420px) { #hudL { font-size: 11px; width: 165px; padding: 4px 7px; } #hudL .row { line-height: 16px; } #gold { font-size: 14px; } #mini { width: 88px; height: 88px; } #fireBtn { width: 78px; height: 78px; font-size: 26px; } #patchBtn { width: 78px; height: 42px; } }
+  #title { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: radial-gradient(ellipse at center, rgba(10,20,40,.0) 30%, rgba(5,10,20,.75)); }
+  #logo { font-size: clamp(42px, 10vw, 92px); margin: 0; font-weight: bold; letter-spacing: 3px; background: linear-gradient(180deg, #fff3b0 10%, #ffd23f 45%, #c98a1e 75%, #8a5a10); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 4px 0 #3b2414) drop-shadow(0 10px 18px rgba(0,0,0,.8)); animation: float 4s ease-in-out infinite; line-height: 1; }
+  @keyframes float { 50% { transform: translateY(-6px); } }
+  #title .sub { color: #ffe9b0; margin: 10px 0 24px; font-size: 16px; font-style: italic; text-shadow: 0 2px 4px #000; }
+  #title .btn { padding: 12px 34px; font-size: 20px; margin: 6px; min-width: 240px; }
+  #title .small { margin-top: 18px; font-size: 12px; opacity: .85; text-shadow: 0 1px 2px #000; }
+  .small { font-size: 12px; opacity: .85; }
+  #intro { position: absolute; inset: 0; z-index: 25; display: none; background: #000; }
+  #introCv { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #introText { position: absolute; left: 50%; bottom: 12%; transform: translateX(-50%); width: min(720px, 86vw); text-align: center; font-size: clamp(15px, 2.6vw, 21px); line-height: 1.5; color: #fff3d6; text-shadow: 0 2px 6px #000, 0 0 2px #000; font-style: italic; min-height: 3em; }
+  #introSkip { position: absolute; top: 14px; right: 14px; padding: 7px 14px; font-size: 13px; }
+  #introTap { position: absolute; bottom: 4%; left: 50%; transform: translateX(-50%); font-size: 12px; opacity: .6; animation: blink 1.5s infinite; }
+  @keyframes blink { 50% { opacity: .2; } }
+  @media (max-height: 430px) { #hudL { font-size: 11px; width: 172px; padding: 5px 8px; } #hudL .row { line-height: 17px; } #gold { font-size: 15px; } #miniWrap, #mini { width: 90px; height: 90px; } #fireBtn { width: 80px; height: 80px; } #specialBtn { width: 54px; height: 54px; } #patchBtn { width: 80px; height: 40px; font-size: 12px; } .panel h2 { font-size: 16px; padding: 6px 12px; } .body { padding: 8px 10px; } .card { padding: 6px 8px; margin-bottom: 6px; } }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
 
-<div id="hudL" class="hud">
-  <div class="row"><span id="gold">💰 0</span><span id="shipName"></span></div>
-  <div class="row"><span id="cargo">📦 0/10</span><span id="cargoVal"></span></div>
-  <div class="row"><span>❤️ Casco</span><span id="hpTxt"></span></div>
-  <div class="bar"><div id="hpBar" style="background:#5ad15a"></div></div>
-  <div class="row"><span>💧 Agua</span><span id="holesTxt"></span></div>
-  <div class="bar"><div id="waterBar" style="background:#3fa9f5"></div></div>
-  <div class="row"><span>😊 Moral</span><span id="planksTxt"></span></div>
-  <div class="bar"><div id="moraleBar" style="background:#f5a623"></div></div>
+<div id="hudL" class="hud woodbox">
+  <div class="row"><span id="gold"></span><span id="shipName"></span></div>
+  <div class="row"><span id="cargo"></span><span id="cargoVal" class="small"></span></div>
+  <div class="row"><span id="hpLbl"></span><span id="hpTxt"></span></div>
+  <div class="bar"><div id="hpBar" style="background-color:#5ad15a"></div></div>
+  <div id="seaRows">
+    <div class="row"><span id="waterLbl"></span><span id="holesTxt"></span></div>
+    <div class="bar"><div id="waterBar" style="background-color:#3fa9f5"></div></div>
+    <div class="row"><span id="moraleLbl"></span><span id="planksTxt"></span></div>
+    <div class="bar"><div id="moraleBar" style="background-color:#f5a623"></div></div>
+  </div>
 </div>
-<div id="hudTop" class="hud"><div id="obj"></div></div>
+<div id="hudTop" class="hud"><div id="obj"></div><div id="contract"></div></div>
 <div id="toasts"></div>
 <div id="hudR" class="hud">
   <div style="display:flex;gap:6px;align-items:flex-start">
-    <button id="menuBtn" class="btn">☰</button>
-    <canvas id="mini" width="112" height="112"></canvas>
+    <button id="menuBtn" class="btn"></button>
+    <div id="miniWrap"><canvas id="mini" width="236" height="236"></canvas><div id="compassN">N</div></div>
   </div>
-  <div id="windBox">Viento <span id="windArrow">➤</span></div>
+  <div id="infoBox" class="woodbox"><span id="windArrow"></span><span id="clock"></span></div>
 </div>
 <div id="raidBox"></div>
-<div id="bossBar" class="hud"><div id="bossName" style="font-weight:bold;font-size:13px"></div><div class="bar"><div id="bossHp" style="background:#e53935"></div></div></div>
+<div id="bossBar" class="hud woodbox"><div id="bossName"></div><div class="bar"><div id="bossHp" style="background-color:#e53935"></div></div></div>
+<div id="zoneBanner"><div class="t" id="zbT"></div><div class="line"></div><div class="s" id="zbS"></div></div>
+<div id="bigBanner" class="woodbox"><div class="t" id="bbT"></div><div class="s" id="bbS"></div></div>
 <button id="actionBtn" class="btn"></button>
 <div id="controls">
-  <button id="patchBtn" class="btn">🪵 Tapar</button>
-  <button id="fireBtn" class="btn">💥<span class="r">FUEGO</span></button>
+  <button id="townBtn" class="btn"></button>
+  <button id="patchBtn" class="btn"></button>
+  <button id="specialBtn" class="btn round"><canvas class="cd" id="specCd" width="72" height="72"></canvas></button>
+  <button id="fireBtn" class="btn round"></button>
 </div>
+<div id="coinLayer"></div>
 <div id="overlay"></div>
 <div id="dlgLayer"></div>
+<div id="intro"><canvas id="introCv"></canvas><div id="introText"></div><button id="introSkip" class="btn">Saltar</button><div id="introTap">Toca para continuar</div></div>
 <div id="title">
-  <h1>⚓ Plunder Port</h1>
-  <p>De un bote lleno de huecos… a un galeón repleto de tesoros.</p>
+  <div id="logo">Plunder Port</div>
+  <div class="sub">De un bote lleno de huecos a un galeón repleto de tesoros</div>
   <button id="btnContinue" class="btn">Continuar</button>
   <button id="btnNew" class="btn">Nueva partida</button>
-  <p class="small" style="margin-top:20px">Toca el mar para navegar · 💥 dispara · 🪵 tapa huecos<br>PC: WASD/flechas, Espacio = fuego, E = acción, R = tapar, M = mapa</p>
+  <div class="small">Toca el mar para navegar · Desembarca en las islas para buscar tesoros<br>PC: WASD/flechas · Espacio: fuego · Q: andanada · E: acción · R: tapar · M: mapa</div>
 </div>
 
 <script src="js/data.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/audio.js"></script>
 <script src="js/world.js"></script>
 <script src="js/game.js"></script>
+<script src="js/land.js"></script>
 <script src="js/render.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/intro.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

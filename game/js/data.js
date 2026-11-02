@@ -1,19 +1,16 @@
 'use strict';
-// ===== Plunder Port — datos y balance del juego =====
+// ===== Plunder Port — datos y balance =====
 const TILE = 32;
-const WW = 200, WH = 200;           // tamaño del mundo en tiles
+const WW = 200, WH = 200;
 const SEED = 1337;
-
-// Tipos de tile
 const W_WATER = 0, W_LAND = 1, W_REEF = 2, W_ROCK = 3;
 
 const ZONES = [
-  { name: 'Mar de los Novatos', sea: [42, 128, 196], req: 1, lootMult: 1 },
-  { name: 'Arrecifes de Coral', sea: [30, 160, 175], req: 2, lootMult: 1.6 },
-  { name: 'Aguas de Tormenta', sea: [44, 82, 112], req: 3, lootMult: 2.4 },
-  { name: 'Triángulo Maldito', sea: [58, 48, 88], req: 4, lootMult: 3.4 },
+  { name: 'Mar de los Novatos', sea: [38, 124, 192], deep: [24, 92, 160], req: 1, lootMult: 1 },
+  { name: 'Arrecifes de Coral', sea: [28, 158, 172], deep: [18, 118, 140], req: 2, lootMult: 1.6 },
+  { name: 'Aguas de Tormenta', sea: [44, 80, 110], deep: [26, 52, 78], req: 3, lootMult: 2.4 },
+  { name: 'Triángulo Maldito', sea: [58, 46, 86], deep: [34, 24, 58], req: 4, lootMult: 3.4 },
 ];
-// Distancia (en tiles) desde el puerto inicial donde empieza cada zona
 const ZONE_EDGES = [0, 50, 95, 140];
 
 const SHIPS = [
@@ -31,20 +28,20 @@ const SHIPS = [
 
 const PART_MAX = 6;
 const PARTS = {
-  casco:   { name: 'Casco',   desc: '+20% resistencia, menos huecos y menos agua', base: 90 },
-  velas:   { name: 'Velas',   desc: '+10% velocidad', base: 80 },
-  bodega:  { name: 'Bodega',  desc: '+20% espacio de carga', base: 100 },
-  canones: { name: 'Cañones', desc: '+20% daño en combate', base: 110 },
-  timon:   { name: 'Timón',   desc: '+15% giro y control', base: 70 },
+  casco:   { name: 'Casco',   desc: '+20% resistencia, menos huecos y menos agua', base: 90, icon: 'shield' },
+  velas:   { name: 'Velas',   desc: '+10% velocidad', base: 80, icon: 'sail' },
+  bodega:  { name: 'Bodega',  desc: '+20% espacio de carga', base: 100, icon: 'crate' },
+  canones: { name: 'Cañones', desc: '+20% daño en combate', base: 110, icon: 'cannon' },
+  timon:   { name: 'Timón',   desc: '+15% giro y control', base: 70, icon: 'wheel' },
 };
 function partCost(part, lvl) { return Math.round(PARTS[part].base * Math.pow(2.25, lvl)); }
 
 const ITEMS = {
-  coins:   { name: 'Monedas de oro', value: 15,  size: 1, color: '#f5c542', icon: '🪙' },
-  chest:   { name: 'Cofre común',    value: 55,  size: 2, color: '#a0662b', icon: '📦' },
-  ruby:    { name: 'Rubí',           value: 120, size: 1, color: '#e0245e', icon: '🔴' },
-  diamond: { name: 'Diamante',       value: 240, size: 1, color: '#9ef0ff', icon: '💎' },
-  rare:    { name: 'Cofre raro',     value: 650, size: 3, color: '#b06cff', icon: '🧰' },
+  coins:   { name: 'Monedas de oro', value: 15,  size: 1, color: '#f5c542', icon: 'coin' },
+  chest:   { name: 'Cofre común',    value: 55,  size: 2, color: '#c98a3e', icon: 'chest' },
+  ruby:    { name: 'Rubí',           value: 120, size: 1, color: '#e0245e', icon: 'ruby' },
+  diamond: { name: 'Diamante',       value: 240, size: 1, color: '#9ef0ff', icon: 'diamond' },
+  rare:    { name: 'Cofre raro',     value: 650, size: 3, color: '#b06cff', icon: 'rare' },
 };
 const ITEM_ORDER = ['coins', 'chest', 'ruby', 'diamond', 'rare'];
 const LOOT_WEIGHTS = [
@@ -55,12 +52,12 @@ const LOOT_WEIGHTS = [
 ];
 
 const LEGENDS = {
-  skull:   { name: 'Calavera Dorada',        desc: 'Brilla en la oscuridad y sonríe a sus dueños.', color: '#ffd23f' },
-  trident: { name: 'Tridente de Poseidón',   desc: 'Dicen que calma las olas.', color: '#4fd1ff' },
-  crown:   { name: 'Corona del Rey Ahogado', desc: 'Aún gotea agua salada.', color: '#ffb347' },
-  chalice: { name: 'Cáliz de Jade',          desc: 'Rescatado de un naufragio en los arrecifes.', color: '#3ddc84' },
-  pearl:   { name: 'Perla Negra',            desc: 'Del tamaño de un puño, escondida en una cueva.', color: '#555577' },
-  compass: { name: 'Brújula Maldita',        desc: 'No apunta al norte: apunta a lo que más deseas.', color: '#c04040' },
+  skull:   { name: 'Calavera Dorada',        desc: 'Brilla en la oscuridad y sonríe a sus dueños. (+10% al vender)', color: '#ffd23f' },
+  trident: { name: 'Tridente de Poseidón',   desc: 'Calma las olas. (Las tormentas hacen la mitad de daño)', color: '#4fd1ff' },
+  crown:   { name: 'Corona del Rey Ahogado', desc: 'Aún gotea agua salada. (+25% oro de tabernas)', color: '#ffb347' },
+  chalice: { name: 'Cáliz de Jade',          desc: 'Quien bebe de él nunca se desanima. (La moral baja más lento)', color: '#3ddc84' },
+  pearl:   { name: 'Perla Negra',            desc: 'Ves más lejos con ella en el bolsillo. (+1 de visión)', color: '#6a5f8f' },
+  compass: { name: 'Brújula Maldita',        desc: 'Apunta a lo que más deseas. (Revela todos los secretos)', color: '#c04040' },
 };
 const LEGEND_ORDER = ['skull', 'trident', 'crown', 'chalice', 'pearl', 'compass'];
 
@@ -71,11 +68,11 @@ const TROPHIES = {
 };
 
 const CREW = {
-  carpintero: { name: 'Carpintero', desc: 'Repara huecos solo, en pleno viaje', cost: 300, icon: '🔨' },
-  vigia:      { name: 'Vigía',      desc: 'Revela más mapa alrededor del barco', cost: 200, icon: '🔭' },
-  artillero:  { name: 'Artillero',  desc: 'Más daño y recarga más rápida', cost: 450, icon: '💣' },
-  cocinero:   { name: 'Cocinero',   desc: 'Mantiene alta la moral en viajes largos', cost: 250, icon: '🍲' },
-  buzo:       { name: 'Buzo',       desc: 'Saca tesoros de los naufragios', cost: 600, icon: '🤿' },
+  carpintero: { name: 'Carpintero', desc: 'Repara huecos solo, en pleno viaje', cost: 300, icon: 'hammer' },
+  vigia:      { name: 'Vigía',      desc: 'Revela más mapa alrededor del barco', cost: 200, icon: 'spyglass' },
+  artillero:  { name: 'Artillero',  desc: 'Más daño, más críticos y recarga rápida', cost: 450, icon: 'bomb' },
+  cocinero:   { name: 'Cocinero',   desc: 'Mantiene alta la moral y cura en tierra', cost: 250, icon: 'pot' },
+  buzo:       { name: 'Buzo',       desc: 'Saca tesoros de los naufragios', cost: 600, icon: 'diver' },
 };
 const CREW_ORDER = ['carpintero', 'vigia', 'artillero', 'cocinero', 'buzo'];
 
@@ -91,22 +88,25 @@ const DECOR = [
 ];
 const HOUSE_PRICE = 120000;
 
-// Puertos: posición en tiles, multiplicadores de precio
 const PORTS = [
-  { name: 'Puerto Remiendo', tx: 22, ty: 176, mult: { coins: 1.0, chest: 1.0, ruby: 0.85, diamond: 0.8, rare: 0.9 }, estate: true, mapId: 0 },
-  { name: 'Villa Gaviota',   tx: 34, ty: 136, mult: { coins: 0.9, chest: 1.15, ruby: 1.3, diamond: 0.9, rare: 1.0 }, estate: false, mapId: 0 },
-  { name: 'Bahía Coral',     tx: 78, ty: 142, mult: { coins: 1.1, chest: 0.9, ruby: 1.0, diamond: 1.3, rare: 1.1 }, estate: true, mapId: 1 },
-  { name: 'Puerto Trueno',   tx: 110, ty: 96, mult: { coins: 1.3, chest: 1.1, ruby: 0.9, diamond: 1.05, rare: 1.25 }, estate: false, mapId: 2 },
-  { name: 'Refugio Maldito', tx: 174, ty: 32, mult: { coins: 1.0, chest: 1.3, ruby: 1.4, diamond: 1.2, rare: 1.5 }, estate: false, mapId: 2 },
+  { name: 'Puerto Remiendo', tx: 22, ty: 176, mult: { coins: 1.0, chest: 1.0, ruby: 0.85, diamond: 0.8, rare: 0.9 }, estate: true, mapId: 0, roof: '#b5462f' },
+  { name: 'Villa Gaviota',   tx: 34, ty: 134, mult: { coins: 0.9, chest: 1.15, ruby: 1.3, diamond: 0.9, rare: 1.0 }, estate: false, mapId: 0, roof: '#3f6fb5' },
+  { name: 'Bahía Coral',     tx: 78, ty: 142, mult: { coins: 1.1, chest: 0.9, ruby: 1.0, diamond: 1.3, rare: 1.1 }, estate: true, mapId: 1, roof: '#d9733b' },
+  { name: 'Puerto Trueno',   tx: 110, ty: 96, mult: { coins: 1.3, chest: 1.1, ruby: 0.9, diamond: 1.05, rare: 1.25 }, estate: false, mapId: 2, roof: '#5b5f6b' },
+  { name: 'Refugio Maldito', tx: 174, ty: 32, mult: { coins: 1.0, chest: 1.3, ruby: 1.4, diamond: 1.2, rare: 1.5 }, estate: false, mapId: 2, roof: '#5d3b6e' },
 ];
 
-const TAVERN = {
-  price: [1500, 6000, 18000, 45000],
-  income: [6, 18, 45, 110],     // oro por minuto a nivel 1
-  maxLevel: 5,
-  capMinutes: 480,              // máximo acumulado (8 horas)
-};
+// Edificios del pueblo (posición relativa al centro del puerto, en px)
+const BUILDINGS = [
+  { id: 'mercado',   name: 'Mercado',            tab: 'mercado',   dx: -78, dy: -58, w: 62, h: 44, icon: 'coin' },
+  { id: 'tienda',    name: 'Tienda de partes',   tab: 'tienda',    dx: 4,   dy: -92, w: 56, h: 42, icon: 'hammer' },
+  { id: 'astillero', name: 'Astillero',          tab: 'astillero', dx: 76,  dy: -62, w: 60, h: 44, icon: 'ship' },
+  { id: 'taberna',   name: 'Taberna',            tab: 'taberna',   dx: -92, dy: 34,  w: 60, h: 46, icon: 'mug' },
+  { id: 'capitania', name: 'Capitanía',          tab: 'puerto',    dx: 62,  dy: 58,  w: 52, h: 40, icon: 'anchor' },
+  { id: 'inmo',      name: 'Inmobiliaria',       tab: 'inmo',      dx: -14, dy: 82,  w: 56, h: 40, icon: 'house', estateOnly: true },
+];
 
+const TAVERN = { price: [1500, 6000, 18000, 45000], income: [6, 18, 45, 110], maxLevel: 5, capMinutes: 480 };
 const MAP_PIECE_PRICE = [150, 500, 1200];
 const MAP_NAMES = ['Mapa del Islote Escondido', 'Mapa de la Fosa Tormentosa', 'Mapa del Corazón Maldito'];
 const MAP_LEGEND = ['skull', 'trident', 'crown'];
@@ -117,6 +117,12 @@ const ENEMY_STATS = [
   { hp: 140, dmg: 12, speed: 125, reload: 2.0, gold: 380 },
   { hp: 260, dmg: 18, speed: 140, reload: 1.8, gold: 800 },
 ];
+// Tipos de piratas rivales
+const ENEMY_TYPES = {
+  balandra: { name: 'Balandra pirata', hp: 0.7, speed: 1.3,  balls: 1, sail: '#8e1f1f', ram: false, reload: 0.9 },
+  canonera: { name: 'Cañonera',        hp: 1.5, speed: 0.75, balls: 3, sail: '#1d1d1d', ram: false, reload: 1.25 },
+  bruto:    { name: 'Embestidor',      hp: 1.2, speed: 1.1,  balls: 1, sail: '#2e4a2a', ram: true,  reload: 1.6 },
+};
 
 const BOSSES = {
   serpent: { name: 'Serpiente Marina', zone: 1, hp: 600,  reward: 2500 },
@@ -126,3 +132,22 @@ const BOSSES = {
 
 const PLANK_PRICE = 8;
 const RUMORS_PRICE = [30, 80, 200, 400];
+const DAY_LENGTH = 420; // segundos por día completo
+
+const VILLAGER_LINES = [
+  'Dicen que una serpiente gigante ronda los arrecifes.',
+  'Mi abuelo vio al Kraken... y nunca volvió a pescar.',
+  'Si cargas mucho botín, los piratas lo huelen desde lejos.',
+  'En las islas hay tesoros enterrados. Busca el brillo en la arena.',
+  'Las tormentas abren huecos en los barcos pequeños. ¡Lleva tablas!',
+  'En cada puerto pagan distinto. Compara antes de vender.',
+  'Un buen cocinero mantiene contenta a la tripulación.',
+  'Nadie que haya entrado al Triángulo Maldito con un bote ha vuelto.',
+  'Los cangrejos de las islas pellizcan fuerte. ¡Ojo con los tobillos!',
+  'Abre una taberna y ganarás oro hasta dormido.',
+  'Por la noche los barcos encienden sus faroles. Se ven desde lejos.',
+  'Se cuenta que un barco fantasma navega el Triángulo.',
+  'Las botellas a la deriva traen mensajes... y a veces mapas.',
+  'Dispárale a los barriles rojos. ¡Hacen un buen estruendo!',
+  'Cuando un pirata está casi hundido, puedes abordarlo y quedarte con todo.',
+];

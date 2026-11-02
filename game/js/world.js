@@ -26,9 +26,8 @@ function fbm(x, y, s) {
 }
 
 const World = {
-  tiles: null, zone: null, reach: null, ports: [], wrecks: [], caves: [], xmarks: [], lairs: {},
+  tiles: null, zone: null, reach: null, island: null, ports: [], wrecks: [], caves: [], xmarks: [], lairs: {}, digs: [], buildings: [],
   startX: 0, startY: 0,
-  idx(x, y) { return y * WW + x; },
   tileAt(x, y) { if (x < 0 || y < 0 || x >= WW || y >= WH) return W_LAND; return this.tiles[y * WW + x]; },
   tileAtWorld(px, py) { return this.tileAt(Math.floor(px / TILE), Math.floor(py / TILE)); },
   zoneAtWorld(px, py) {
@@ -37,6 +36,17 @@ const World = {
   },
   isWater(x, y) { const t = this.tileAt(x, y); return t === W_WATER || t === W_REEF; },
   blocked(px, py) { const t = this.tileAtWorld(px, py); return t === W_LAND || t === W_ROCK; },
+  isLandWorld(px, py) { return this.tileAtWorld(px, py) === W_LAND; },
+  islandAt(px, py) { const x = Math.floor(px / TILE), y = Math.floor(py / TILE); if (x < 0 || y < 0 || x >= WW || y >= WH) return 0; return this.island[y * WW + x]; },
+  portAtIsland(id) { return this.ports.find(p => p.island === id) || null; },
+
+  carveDisk(cx, cy, rLand, rWater) {
+    for (let y = Math.floor(cy - rWater); y <= cy + rWater; y++) for (let x = Math.floor(cx - rWater); x <= cx + rWater; x++) {
+      if (x < 2 || y < 2 || x >= WW - 2 || y >= WH - 2) continue;
+      const d = Math.hypot(x - cx, y - cy);
+      if (d <= rLand) this.tiles[y * WW + x] = W_LAND; else if (d <= rWater) this.tiles[y * WW + x] = W_WATER;
+    }
+  },
 
   generate() {
     const rnd = mulberry32(SEED);
@@ -45,7 +55,6 @@ const World = {
     this.zone = new Uint8Array(N);
     const sx = PORTS[0].tx, sy = PORTS[0].ty;
     this.startX = sx; this.startY = sy;
-
     for (let y = 0; y < WH; y++) for (let x = 0; x < WW; x++) {
       const i = y * WW + x;
       const d = Math.hypot(x - sx, y - sy) + (fbm(x / 14, y / 14, 91) - 0.5) * 14;
@@ -64,56 +73,29 @@ const World = {
       }
       this.tiles[i] = t;
     }
-    // Islas de los puertos
-    this.ports = PORTS.map((p, id) => {
-      for (let y = p.ty - 6; y <= p.ty + 6; y++) for (let x = p.tx - 6; x <= p.tx + 6; x++) {
-        if (x < 2 || y < 2 || x >= WW - 2 || y >= WH - 2) continue;
-        const d = Math.hypot(x - p.tx, y - p.ty);
-        if (d <= 1.6) this.tiles[y * WW + x] = W_LAND;
-        else if (d <= 6) this.tiles[y * WW + x] = W_WATER;
-      }
-      return { id, name: p.name, tx: p.tx, ty: p.ty, x: (p.tx + 0.5) * TILE, y: (p.ty + 0.5) * TILE, zone: this.zone[p.ty * WW + p.tx], def: p };
-    });
-    // Islotes secretos para las X
-    const xSpots = [{ zone: 1 }, { zone: 2 }, { zone: 3 }];
+    // Islas de los puertos (pueblos)
+    for (const p of PORTS) this.carveDisk(p.tx, p.ty, 5.3, 11);
+    this.ports = PORTS.map((p, id) => ({ id, name: p.name, tx: p.tx, ty: p.ty, x: (p.tx + 0.5) * TILE, y: (p.ty + 0.5) * TILE, def: p }));
+    for (const p of this.ports) p.zone = this.zone[p.ty * WW + p.tx];
     this.flood();
-    this.xmarks = xSpots.map((s, k) => {
-      const c = this.pickTile(rnd, t => this.zone[t] === s.zone && this.tiles[t] === W_WATER, 900, 12);
+    // Islotes del tesoro (X)
+    this.xmarks = [1, 2, 3].map((zone, k) => {
+      const c = this.pickTile(rnd, t => this.zone[t] === zone && this.tiles[t] === W_WATER && this.reach[t], 900, 14);
       const cx = c % WW, cy = (c / WW) | 0;
-      for (let y = cy - 5; y <= cy + 5; y++) for (let x = cx - 5; x <= cx + 5; x++) {
-        if (x < 2 || y < 2 || x >= WW - 2 || y >= WH - 2) continue;
-        const d = Math.hypot(x - cx, y - cy);
-        if (d <= 1.3) this.tiles[y * WW + x] = W_LAND; else if (d <= 4) this.tiles[y * WW + x] = W_WATER;
-      }
-      // la X se marca en el agua junto al islote (playa)
-      return { map: k, tx: cx + 2, ty: cy, x: (cx + 2.5) * TILE, y: (cy + 0.5) * TILE, zone: s.zone };
+      this.carveDisk(cx, cy, 2.6, 6);
+      return { map: k, tx: cx, ty: cy, x: (cx + 0.5) * TILE, y: (cy + 0.5) * TILE, zone };
     });
     this.flood();
-    this.ensureReach(this.ports.map(p => [p.tx + 3, p.ty]));
-    this.ensureReach(this.xmarks.map(p => [p.tx, p.ty]));
+    this.ensureReach(this.ports.map(p => [p.tx + 8, p.ty]));
+    this.ensureReach(this.xmarks.map(p => [p.tx + 4, p.ty]));
 
     // Naufragios (2 por zona)
-    const wreckLegend = { 1: 'chalice', 2: null, 3: 'compass' };
+    const wreckLegend = { 1: 'chalice', 3: 'compass' };
     this.wrecks = [];
     for (let z = 0; z < 4; z++) for (let k = 0; k < 2; k++) {
-      const t = this.pickTile(rnd, t => this.zone[t] === z && this.reach[t] && this.tiles[t] === W_WATER, 900, 14);
+      const t = this.pickTile(rnd, t => this.zone[t] === z && this.reach[t] && this.tiles[t] === W_WATER, 900, 16);
       this.wrecks.push({ id: this.wrecks.length, zone: z, tx: t % WW, ty: (t / WW) | 0, x: (t % WW + 0.5) * TILE, y: (((t / WW) | 0) + 0.5) * TILE,
         legend: k === 0 ? wreckLegend[z] || null : null });
-    }
-    // Cuevas en la costa (2 por zona)
-    this.caves = [];
-    for (let z = 0; z < 4; z++) for (let k = 0; k < 2; k++) {
-      const t = this.pickTile(rnd, t => {
-        if (this.zone[t] !== z || this.tiles[t] !== W_LAND) return false;
-        const x = t % WW, y = (t / WW) | 0;
-        return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => this.reach[(y + dy) * WW + x + dx] && this.tiles[(y + dy) * WW + x + dx] === W_WATER);
-      }, 900, 14);
-      const x = t % WW, y = (t / WW) | 0;
-      // punto de interacción: agua adyacente
-      let wx = x, wy = y;
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (this.reach[(y + dy) * WW + x + dx]) { wx = x + dx; wy = y + dy; break; }
-      this.caves.push({ id: this.caves.length, zone: z, tx: x, ty: y, x: (x + 0.5) * TILE, y: (y + 0.5) * TILE, ix: (wx + 0.5) * TILE, iy: (wy + 0.5) * TILE,
-        legend: (z === 2 && k === 0) ? 'pearl' : null });
     }
     // Guaridas de jefes
     for (const b of Object.keys(BOSSES)) {
@@ -126,12 +108,71 @@ const World = {
       }, 4000, 20);
       this.lairs[b] = { x: (t % WW + 0.5) * TILE, y: (((t / WW) | 0) + 0.5) * TILE };
     }
-    // lista de agua alcanzable por zona (para generar botín)
+    this.labelIslands();
+    for (const p of this.ports) p.island = this.island[p.ty * WW + p.tx];
+    for (const x of this.xmarks) x.island = this.island[x.ty * WW + x.tx];
+    // Cuevas: en tierra junto a la costa, en islas visitables (2 por zona)
+    this.caves = [];
+    for (let z = 0; z < 4; z++) for (let k = 0; k < 2; k++) {
+      const t = this.pickTile(rnd, t => {
+        if (this.zone[t] !== z || this.tiles[t] !== W_LAND || !this.coastal[this.island[t]]) return false;
+        if (this.ports.some(p => p.island === this.island[t])) return false;
+        const x = t % WW, y = (t / WW) | 0;
+        let n = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (this.tileAt(x + dx, y + dy) === W_LAND) n++;
+        return n >= 7;
+      }, 900, 14);
+      const x = t % WW, y = (t / WW) | 0;
+      this.caves.push({ id: this.caves.length, zone: z, tx: x, ty: y, x: (x + 0.5) * TILE, y: (y + 0.5) * TILE, legend: (z === 2 && k === 0) ? 'pearl' : null });
+    }
+    // Tesoros enterrados en islas
+    this.digs = [];
+    const isl = this.islandTiles;
+    for (const id in isl) {
+      if (!this.coastal[id]) continue;
+      if (this.ports.some(p => p.island === +id) || this.xmarks.some(x => x.island === +id)) continue;
+      const tiles = isl[id]; if (tiles.length < 5 || tiles.length > 2500) continue;
+      const n = Math.min(4, 1 + Math.floor(tiles.length / 40));
+      for (let k = 0; k < n; k++) {
+        const t = tiles[Math.floor(rnd() * tiles.length)];
+        const x = t % WW, y = (t / WW) | 0;
+        if (this.digs.some(d => Math.abs(d.tx - x) + Math.abs(d.ty - y) < 4)) continue;
+        this.digs.push({ id: this.digs.length, tx: x, ty: y, x: (x + 0.5) * TILE, y: (y + 0.5) * TILE, zone: this.zone[t], island: +id, chest: rnd() < 0.35 });
+      }
+    }
+    // Edificios de los pueblos
+    this.buildings = [];
+    for (const p of this.ports) for (const b of BUILDINGS) {
+      if (b.estateOnly && !p.def.estate) continue;
+      this.buildings.push({ port: p.id, def: b, x: p.x + b.dx, y: p.y + b.dy, w: b.w, h: b.h, doorX: p.x + b.dx, doorY: p.y + b.dy + b.h / 2 + 6 });
+    }
+    // Agua alcanzable por zona (para generar botín)
     this.waterByZone = [[], [], [], []];
     for (let i = 0; i < N; i++) if (this.reach[i] && this.tiles[i] === W_WATER) this.waterByZone[this.zone[i]].push(i);
   },
 
-  // escoge un tile aleatorio que cumpla la condición y esté lejos de los puertos
+  labelIslands() {
+    const N = WW * WH;
+    this.island = new Int32Array(N); this.islandTiles = {}; this.coastal = {};
+    let id = 0;
+    const q = new Int32Array(N);
+    for (let s = 0; s < N; s++) {
+      if (this.tiles[s] !== W_LAND || this.island[s]) continue;
+      id++; let h = 0, t = 0; q[t++] = s; this.island[s] = id; const list = [];
+      let coast = false;
+      while (h < t) {
+        const i = q[h++]; list.push(i);
+        const x = i % WW, y = (i / WW) | 0;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= WW || ny >= WH) continue;
+          const j = ny * WW + nx;
+          if (this.tiles[j] === W_LAND) { if (!this.island[j]) { this.island[j] = id; q[t++] = j; } }
+          else if (this.reach[j]) coast = true;
+        }
+      }
+      this.islandTiles[id] = list; this.coastal[id] = coast;
+    }
+  },
+
   pickTile(rnd, cond, tries, minPortDist) {
     let best = -1;
     for (let k = 0; k < tries * 10; k++) {
@@ -140,17 +181,17 @@ const World = {
       if (!cond(t)) continue;
       best = t;
       if (this.ports.every(p => Math.hypot(p.tx - x, p.ty - y) > minPortDist) &&
-          (this.wrecks || []).every(w => Math.hypot(w.tx - x, w.ty - y) > 8) &&
-          (this.caves || []).every(w => Math.hypot(w.tx - x, w.ty - y) > 8)) return t;
+          this.wrecks.every(w => Math.hypot(w.tx - x, w.ty - y) > 8) &&
+          this.caves.every(w => Math.hypot(w.tx - x, w.ty - y) > 8)) return t;
     }
-    if (best < 0) best = (this.startY) * WW + this.startX + 3;
+    if (best < 0) best = (this.startY) * WW + this.startX + 8;
     return best;
   },
 
   flood() {
     const N = WW * WH;
     this.reach = new Uint8Array(N);
-    const st = this.startY * WW + this.startX + 3;
+    const st = this.startY * WW + this.startX + 8;
     const q = new Int32Array(N); let h = 0, t = 0;
     q[t++] = st; this.reach[st] = 1;
     while (h < t) {
@@ -166,17 +207,17 @@ const World = {
     }
   },
 
-  // abre canales hacia el puerto inicial si algún punto quedó encerrado
   ensureReach(points) {
     for (const [px, py] of points) {
       if (this.reach[py * WW + px]) continue;
       let x = px, y = py;
-      const tx = this.startX + 3, ty = this.startY;
+      const tx = this.startX + 8, ty = this.startY;
       let guard = 0;
       while (!this.reach[y * WW + x] && guard++ < 400) {
         for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
           const xx = x + dx, yy = y + dy;
           if (xx < 2 || yy < 2 || xx >= WW - 2 || yy >= WH - 2) continue;
+          if (this.ports.some(p => Math.hypot(p.tx - xx, p.ty - yy) < 6)) continue;
           const tt = this.tiles[yy * WW + xx];
           if (tt === W_LAND || tt === W_ROCK) this.tiles[yy * WW + xx] = W_WATER;
         }
