@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Plunder Port</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0b1828; font-family: 'Trebuchet MS', Verdana, sans-serif; color: #fff; touch-action: none; }
+  #game { position: absolute; inset: 0; display: block; }
+  .hud { position: absolute; pointer-events: none; text-shadow: 0 1px 2px #000; }
+  #hudL { top: 8px; left: 10px; background: rgba(10,20,35,0.62); border: 1px solid rgba(255,220,150,0.25); border-radius: 10px; padding: 6px 9px; font-size: 13px; width: 190px; }
+  #hudL .row { display: flex; justify-content: space-between; gap: 6px; line-height: 19px; }
+  .bar { height: 8px; background: rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden; margin: 2px 0 4px; }
+  .bar > div { height: 100%; border-radius: 4px; transition: width .2s; }
+  #gold { color: #ffd23f; font-weight: bold; font-size: 16px; }
+  #hudTop { top: 6px; left: 50%; transform: translateX(-50%); text-align: center; max-width: 46%; }
+  #obj { background: rgba(10,20,35,0.62); border-radius: 8px; padding: 4px 10px; font-size: 12px; color: #ffe9b0; display: inline-block; }
+  #toasts { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); width: min(520px, 60vw); pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .toast { background: rgba(20,12,4,0.85); border: 1px solid #c9a35a; color: #fff3d6; padding: 6px 12px; border-radius: 8px; font-size: 13px; text-align: center; animation: tin .25s ease-out; }
+  @keyframes tin { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+  #hudR { top: 8px; right: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: auto; }
+  #mini { width: 112px; height: 112px; border-radius: 50%; border: 3px solid #c9a35a; background: #0b1828; box-shadow: 0 2px 8px #000; }
+  #windBox { font-size: 11px; background: rgba(10,20,35,0.62); border-radius: 8px; padding: 2px 8px; display: flex; align-items: center; gap: 4px; pointer-events: none; }
+  #windArrow { display: inline-block; font-size: 16px; color: #bfe6ff; }
+  .btn { pointer-events: auto; border: 2px solid #c9a35a; background: linear-gradient(#6b4423, #4a2c14); color: #ffe9b0; font-weight: bold; border-radius: 12px; font-family: inherit; cursor: pointer; text-shadow: 0 1px 1px #000; box-shadow: 0 3px 0 #2a1808, 0 4px 8px rgba(0,0,0,.5); }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #2a1808; }
+  .btn:disabled { opacity: .45; }
+  #menuBtn { width: 44px; height: 38px; font-size: 20px; }
+  #controls { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  #fireBtn { width: 92px; height: 92px; border-radius: 50%; font-size: 30px; background: radial-gradient(#b3261e, #6d140f); border-color: #ffb347; }
+  #fireBtn .r { font-size: 11px; display: block; }
+  #patchBtn { width: 92px; height: 50px; font-size: 14px; }
+  #actionBtn { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); padding: 12px 22px; font-size: 17px; display: none; background: linear-gradient(#2e7d32, #1b4d1e); border-color: #a5d6a7; animation: pulse 1.2s infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 3px 0 #0a2a0c, 0 0 18px #a5d6a7; } }
+  #bossBar { position: absolute; bottom: 14px; left: 14px; width: min(300px, 34vw); display: none; pointer-events: none; }
+  #bossBar .bar { height: 12px; }
+  #raidBox { position: absolute; left: 14px; bottom: 54px; background: rgba(120,20,10,.8); border-radius: 8px; padding: 5px 10px; font-size: 12px; display: none; pointer-events: none; }
+  #overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 30; }
+  #dlgLayer { position: absolute; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 40; }
+  .panel { background: linear-gradient(#f3e2b3, #e3c98d); color: #3b2414; border: 4px solid #6b4423; border-radius: 14px; width: min(860px, 96vw); max-height: 94vh; display: flex; flex-direction: column; box-shadow: 0 10px 40px #000; text-shadow: none; }
+  .panel h2 { margin: 0; padding: 8px 14px; background: #6b4423; color: #ffe9b0; font-size: 19px; display: flex; justify-content: space-between; align-items: center; border-radius: 9px 9px 0 0; }
+  .panel h2 .g { color: #ffd23f; font-size: 16px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px 0; background: #8a5a32; }
+  .tab { padding: 6px 10px; border-radius: 8px 8px 0 0; background: #b98552; color: #3b2414; font-weight: bold; font-size: 13px; border: none; font-family: inherit; }
+  .tab.on { background: #f3e2b3; }
+  .body { padding: 10px 14px; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; font-size: 14px; }
+  .card { background: rgba(255,255,255,0.45); border: 1px solid #b98552; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+  .card .info { flex: 1; }
+  .card .t { font-weight: bold; font-size: 15px; }
+  .card .d { font-size: 12px; opacity: .8; }
+  .pb { padding: 8px 12px; font-size: 13px; border-radius: 9px; white-space: nowrap; }
+  .pb.green { background: linear-gradient(#2e7d32, #1b4d1e); border-color: #a5d6a7; color: #fff; }
+  .pb.red { background: linear-gradient(#a83228, #6d140f); color: #fff; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+  .lvl { display: inline-flex; gap: 2px; margin-left: 6px; }
+  .lvl i { width: 10px; height: 10px; border-radius: 2px; background: #b98552; display: inline-block; }
+  .lvl i.on { background: #2e7d32; }
+  .up { color: #1b7d22; font-weight: bold; } .down { color: #b3261e; font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td, th { padding: 5px 4px; border-bottom: 1px solid rgba(107,68,35,.3); text-align: left; }
+  .foot { padding: 8px 14px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; border-top: 2px solid #b98552; }
+  .dlg { width: min(520px, 92vw); }
+  .dlg .body { font-size: 15px; line-height: 1.45; text-align: center; }
+  #roomCv { width: auto; max-width: 100%; max-height: calc(94vh - 120px); margin: 0 auto; aspect-ratio: 16 / 9; border-radius: 8px; border: 3px solid #6b4423; display: block; background: #2a1808; }
+  #mapCv { width: 100%; height: 100%; display: block; touch-action: none; }
+  .mapWrap { width: min(94vw, 150vh); height: 92vh; position: relative; }
+  .mapWrap .close { position: absolute; top: 8px; right: 8px; }
+  .mapWrap .hint { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.6); padding: 4px 10px; border-radius: 8px; font-size: 12px; pointer-events: none; }
+  #title { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(20,60,100,.75), rgba(5,10,20,.95)); text-align: center; }
+  #title h1 { font-size: clamp(40px, 9vw, 84px); margin: 0; color: #ffd23f; text-shadow: 0 4px 0 #6b4423, 0 8px 20px #000; letter-spacing: 2px; }
+  #title p { color: #ffe9b0; margin: 6px 0 22px; font-size: 15px; }
+  #title .btn { padding: 12px 34px; font-size: 20px; margin: 6px; }
+  .small { font-size: 12px; opacity: .8; }
+  @media (max-height: 420px) { #hudL { font-size: 11px; width: 165px; padding: 4px 7px; } #hudL .row { line-height: 16px; } #gold { font-size: 14px; } #mini { width: 88px; height: 88px; } #fireBtn { width: 78px; height: 78px; font-size: 26px; } #patchBtn { width: 78px; height: 42px; } }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hudL" class="hud">
+  <div class="row"><span id="gold">💰 0</span><span id="shipName"></span></div>
+  <div class="row"><span id="cargo">📦 0/10</span><span id="cargoVal"></span></div>
+  <div class="row"><span>❤️ Casco</span><span id="hpTxt"></span></div>
+  <div class="bar"><div id="hpBar" style="background:#5ad15a"></div></div>
+  <div class="row"><span>💧 Agua</span><span id="holesTxt"></span></div>
+  <div class="bar"><div id="waterBar" style="background:#3fa9f5"></div></div>
+  <div class="row"><span>😊 Moral</span><span id="planksTxt"></span></div>
+  <div class="bar"><div id="moraleBar" style="background:#f5a623"></div></div>
+</div>
+<div id="hudTop" class="hud"><div id="obj"></div></div>
+<div id="toasts"></div>
+<div id="hudR" class="hud">
+  <div style="display:flex;gap:6px;align-items:flex-start">
+    <button id="menuBtn" class="btn">☰</button>
+    <canvas id="mini" width="112" height="112"></canvas>
+  </div>
+  <div id="windBox">Viento <span id="windArrow">➤</span></div>
+</div>
+<div id="raidBox"></div>
+<div id="bossBar" class="hud"><div id="bossName" style="font-weight:bold;font-size:13px"></div><div class="bar"><div id="bossHp" style="background:#e53935"></div></div></div>
+<button id="actionBtn" class="btn"></button>
+<div id="controls">
+  <button id="patchBtn" class="btn">🪵 Tapar</button>
+  <button id="fireBtn" class="btn">💥<span class="r">FUEGO</span></button>
+</div>
+<div id="overlay"></div>
+<div id="dlgLayer"></div>
+<div id="title">
+  <h1>⚓ Plunder Port</h1>
+  <p>De un bote lleno de huecos… a un galeón repleto de tesoros.</p>
+  <button id="btnContinue" class="btn">Continuar</button>
+  <button id="btnNew" class="btn">Nueva partida</button>
+  <p class="small" style="margin-top:20px">Toca el mar para navegar · 💥 dispara · 🪵 tapa huecos<br>PC: WASD/flechas, Espacio = fuego, E = acción, R = tapar, M = mapa</p>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/world.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
